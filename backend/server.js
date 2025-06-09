@@ -1,12 +1,25 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Schemas 
+
+// User Schema
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true }
+});
+const User = mongoose.model('User', userSchema);
+
+// Experience Schema
 const experienceSchema = new mongoose.Schema({
   companyName: { type: String, required: true },
   role: { type: String, required: true },
@@ -20,8 +33,60 @@ const experienceSchema = new mongoose.Schema({
 });
 const Experience = mongoose.model('Experience', experienceSchema);
 
-// 1. Add Interview Experience
-app.post('/api/experience', async (req, res) => {
+// ====== Middleware for JWT Auth ======
+
+const authenticate = (req, res, next) => {
+  const token = req.header('Authorization')?.split(' ')[1]; // Expecting 'Bearer TOKEN'
+  if (!token) return res.status(401).json({ error: 'Access Denied. No token provided.' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { id: user._id }
+    next();
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid token' });
+  }
+};
+
+// ====== Routes ======
+
+// Signup
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ error: 'User already exists' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ name, email, password: hashedPassword });
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Login
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: 'Invalid email or password' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Invalid email or password' });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add Interview Experience (Protected)
+app.post('/api/experience', authenticate, async (req, res) => {
   try {
     const experience = new Experience(req.body);
     await experience.save();
@@ -31,7 +96,7 @@ app.post('/api/experience', async (req, res) => {
   }
 });
 
-// 2. Get all interview experiences
+// Get all interview experiences
 app.get('/api/experience', async (req, res) => {
   try {
     const experience = await Experience.find().sort({ createdAt: -1 });
@@ -41,7 +106,7 @@ app.get('/api/experience', async (req, res) => {
   }
 });
 
-// 3. Get single Interview Experience
+// Get single Interview Experience
 app.get('/api/experience/:id', async (req, res) => {
   try {
     const experience = await Experience.findById(req.params.id);
@@ -52,8 +117,8 @@ app.get('/api/experience/:id', async (req, res) => {
   }
 });
 
-// 4. Delete Interview Experience
-app.delete('/api/experience/:id', async (req, res) => {
+// Delete Interview Experience (Protected)
+app.delete('/api/experience/:id', authenticate, async (req, res) => {
   try {
     const experience = await Experience.findByIdAndDelete(req.params.id);
     if (!experience) return res.status(404).json({ error: 'Not found' });
@@ -63,7 +128,8 @@ app.delete('/api/experience/:id', async (req, res) => {
   }
 });
 
-// Connect to MongoDB and start the server
+// DB Connect + Server Start 
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
