@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/api_service.dart';
 
 class AddExperienceScreen extends StatefulWidget {
   @override
@@ -9,89 +7,239 @@ class AddExperienceScreen extends StatefulWidget {
 }
 
 class _AddExperienceScreenState extends State<AddExperienceScreen> {
+  final _formKey = GlobalKey<FormState>();
+  bool loading = false;
+  List<String> rounds = ['Technical Round 1'];
+  
   final companyController = TextEditingController();
   final roleController = TextEditingController();
-  final nameController = TextEditingController();
+  final studentNameController = TextEditingController();
   final branchController = TextEditingController();
   final yearController = TextEditingController();
   final experienceController = TextEditingController();
-  final roundsController = TextEditingController();
   final tipsController = TextEditingController();
-  bool loading = false;
+  
+  void addRound() {
+    setState(() {
+      rounds.add('Technical Round ${rounds.length + 1}');
+    });
+  }
 
-  Future<void> submit() async {
+  void removeRound(int index) {
+    setState(() {
+      rounds.removeAt(index);
+    });
+  }
+
+  Future<void> submitExperience() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => loading = true);
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      await ApiService.addExperience({
+        'companyName': companyController.text,
+        'role': roleController.text,
+        'studentName': studentNameController.text,
+        'branch': branchController.text,
+        'year': int.parse(yearController.text),
+        'experience': experienceController.text,
+        'rounds': rounds,
+        'tips': tipsController.text.isEmpty ? null : tipsController.text,
+      });
 
-    final body = {
-      "companyName": companyController.text,
-      "role": roleController.text,
-      "studentName": nameController.text,
-      "branch": branchController.text,
-      "year": int.parse(yearController.text),
-      "experience": experienceController.text,
-      "rounds": roundsController.text.split(','),
-      "tips": tipsController.text,
-    };
-
-    final res = await http.post(
-      Uri.parse('http://YOUR_IP:PORT/api/experience'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${prefs.getString('token')}',
-      },
-      body: json.encode(body),
-    );
-
-    setState(() => loading = false);
-    if (res.statusCode == 201) {
-      Navigator.pop(context);
-    } else {
-      final msg = json.decode(res.body)['error'];
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      Navigator.pop(context, true);
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+      setState(() => loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Add Experience')),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
+      appBar: AppBar(
+        title: Text('Share Interview Experience'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: EdgeInsets.all(16),
           children: [
-            TextField(
-                controller: companyController,
-                decoration: InputDecoration(labelText: 'Company')),
-            TextField(
-                controller: roleController,
-                decoration: InputDecoration(labelText: 'Role')),
-            TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: 'Your Name')),
-            TextField(
-                controller: branchController,
-                decoration: InputDecoration(labelText: 'Branch')),
-            TextField(
-                controller: yearController,
-                decoration: InputDecoration(labelText: 'Year'),
-                keyboardType: TextInputType.number),
-            TextField(
-                controller: experienceController,
-                decoration: InputDecoration(labelText: 'Experience'),
-                maxLines: 5),
-            TextField(
-                controller: roundsController,
-                decoration:
-                    InputDecoration(labelText: 'Rounds (comma separated)')),
-            TextField(
-                controller: tipsController,
-                decoration: InputDecoration(labelText: 'Tips (optional)'),
-                maxLines: 2),
-            SizedBox(height: 20),
-            loading
-                ? CircularProgressIndicator()
-                : ElevatedButton(onPressed: submit, child: Text('Submit')),
+            TextFormField(
+              controller: companyController,
+              decoration: InputDecoration(
+                labelText: 'Company Name',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.business),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter company name';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: roleController,
+              decoration: InputDecoration(
+                labelText: 'Role/Position',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.work),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter the role';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: studentNameController,
+              decoration: InputDecoration(
+                labelText: 'Your Name',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your name';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    controller: branchController,
+                    decoration: InputDecoration(
+                      labelText: 'Branch',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.school),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your branch';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: yearController,
+                    decoration: InputDecoration(
+                      labelText: 'Year',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.calendar_today),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter year';
+                      }
+                      final year = int.tryParse(value);
+                      if (year == null || year < 2000 || year > 2100) {
+                        return 'Invalid year';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+            Text(
+              'Interview Rounds',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            ...List.generate(
+              rounds.length,
+              (index) => Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: rounds[index],
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.format_list_numbered),
+                        ),
+                        onChanged: (value) => rounds[index] = value,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter round name';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    if (rounds.length > 1)
+                      IconButton(
+                        icon: Icon(Icons.remove_circle_outline),
+                        color: Colors.red,
+                        onPressed: () => removeRound(index),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: addRound,
+              icon: Icon(Icons.add),
+              label: Text('Add Round'),
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: experienceController,
+              decoration: InputDecoration(
+                labelText: 'Interview Experience',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+              maxLines: 5,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please share your interview experience';
+                }
+                if (value.length < 50) {
+                  return 'Please provide more details (minimum 50 characters)';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: tipsController,
+              decoration: InputDecoration(
+                labelText: 'Tips for Others (Optional)',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+              maxLines: 3,
+            ),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: loading ? null : submitExperience,
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: loading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text('Submit Experience', style: TextStyle(fontSize: 16)),
+              ),
+            ),
           ],
         ),
       ),
