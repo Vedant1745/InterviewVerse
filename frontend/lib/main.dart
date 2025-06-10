@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Interview Vault',
+      title: 'InterviewVerse',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.indigo,
@@ -43,7 +43,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      
+
       setState(() {
         isAuthenticated = token != null;
         isLoading = false;

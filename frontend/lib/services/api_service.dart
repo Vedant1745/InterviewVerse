@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.196.62:5000/api';
-  
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static const String baseUrl = 'http://192.168.43.127:5000/api';
+
+  static Future<Map<String, dynamic>> login(
+      String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/login'),
       headers: {'Content-Type': 'application/json'},
@@ -22,7 +23,8 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> signup(String name, String email, String password) async {
+  static Future<Map<String, dynamic>> signup(
+      String name, String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/signup'),
       headers: {'Content-Type': 'application/json'},
@@ -43,7 +45,7 @@ class ApiService {
   static Future<List<dynamic>> getExperiences() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-    
+
     final response = await http.get(
       Uri.parse('$baseUrl/experience'),
       headers: {
@@ -59,10 +61,11 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> addExperience(Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> addExperience(
+      Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-    
+
     if (token == null) {
       throw Exception('Not authenticated');
     }
@@ -86,7 +89,7 @@ class ApiService {
   static Future<void> deleteExperience(String experienceId) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-    
+
     if (token == null) {
       throw Exception('Not authenticated');
     }
@@ -103,4 +106,4 @@ class ApiService {
       throw Exception(json.decode(response.body)['error']);
     }
   }
-} 
+}

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'add_experience_screen.dart';
 import 'login_screen.dart';
 import '../models/experience.dart';
@@ -60,7 +59,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Experience> get filteredExperiences {
     if (searchQuery.isEmpty) return experiences;
     return experiences.where((exp) {
-      return exp.companyName.toLowerCase().contains(searchQuery.toLowerCase()) ||
+      return exp.companyName
+              .toLowerCase()
+              .contains(searchQuery.toLowerCase()) ||
           exp.role.toLowerCase().contains(searchQuery.toLowerCase()) ||
           exp.studentName.toLowerCase().contains(searchQuery.toLowerCase()) ||
           exp.branch.toLowerCase().contains(searchQuery.toLowerCase());
@@ -122,7 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Experience'),
-        content: Text('Are you sure you want to delete this interview experience? This action cannot be undone.'),
+        content: Text(
+            'Are you sure you want to delete this interview experience? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -159,7 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(exp.companyName, style: TextStyle(fontSize: 24)),
-                      Text(exp.role, style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+                      Text(exp.role,
+                          style:
+                              TextStyle(fontSize: 18, color: Colors.grey[600])),
                     ],
                   ),
                 ),
@@ -308,7 +312,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: ListTile(
                                     contentPadding: EdgeInsets.all(16),
                                     title: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
                                           child: Text(
@@ -321,14 +326,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                         if (canDeleteExperience(exp))
                                           IconButton(
-                                            icon: Icon(Icons.delete_outline, color: Colors.red),
-                                            onPressed: () => _showDeleteConfirmation(exp.id),
+                                            icon: Icon(Icons.delete_outline,
+                                                color: Colors.red),
+                                            onPressed: () =>
+                                                _showDeleteConfirmation(exp.id),
                                             tooltip: 'Delete Experience',
                                           ),
                                       ],
                                     ),
                                     subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         SizedBox(height: 4),
                                         Text(
